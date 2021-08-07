@@ -7,6 +7,7 @@ namespace MSSQLTOMYSQLConverter.DatabaseHandlers.Databases
     using System.Linq;
     using System.Threading.Tasks;
     using MSSQLTOMYSQLConverter.Models;
+    using rokono_cl.DatabaseHandlers;
     using RokonoDbManager.Models;
 
     public class SQLITE : IAsyncDisposable
@@ -26,37 +27,59 @@ namespace MSSQLTOMYSQLConverter.DatabaseHandlers.Databases
             _primaryAutoInc = primaryAutoInc;
         }
 
-        public async Task< List<BindingRowModel>> ReadDataResultAsync()
+        public async Task<List<BindingRowModel>> ReadDataResultAsync()
         {
             var result = new List<BindingRowModel>();
             var notNull = "NOT NULL";
             while (await _reader.ReadAsync())    
             {
-                
+                var cTemp = new List<string>();
                 if(_reader.GetString(3) == "NO")
                     notNull = "NOT NULL";
                 else
                     notNull = "";
-                
-                if(_reader.GetString(0) == _primaryAutoInc)
-                    _localData.Add(new BindingRowModel{
-                        TableName = _reader.GetString(0),
-                        DataType = $"INTEGER AUTOINCREMENT",
-                        IsNull = notNull
+
+                if (_reader.GetString(0) == _primaryAutoInc)
+                {
+                    _localData.Add(new BindingRowModel
+                    {
+                        TableName = _reader.GetString(0).Replace("'", ""),
+                        DataType = $"INTEGER",
+                        IsNull = notNull,
+                        SpecialRow = false
                     });
-                else if(_foreginKeys.Any(x=>x.TableName == _tableName && x.ConnectionName == _reader.GetString(0)))
-                    _localData.Add(new BindingRowModel{
-                        TableName = _reader.GetString(0),
-                        DataType = $"INTEGER AUTOINCREMENT",
-                        IsNull = notNull
+                    _localData.Add(new BindingRowModel
+                    {
+                        TableName = $" PRIMARY KEY({ _reader.GetString(0).Replace("'", "")} AUTOINCREMENT)",
+                        SpecialRow = true
                     });
-                else if(_reader.IsDBNull(2))
-                    _localData.Add(new BindingRowModel{
+                }
+                else if (_foreginKeys.Any(x => x.TableName == _tableName && x.ConnectionName == _reader.GetString(0)))
+                {
+                    _localData.Add(new BindingRowModel
+                    {
+                        TableName = _reader.GetString(0),
+                        DataType = $"INTEGER",
+                        IsNull = notNull,
+                        SpecialRow = false
+                    });
+                    _localData.Add(new BindingRowModel
+                    {
+                        TableName = $" PRIMARY KEY({ _reader.GetString(0).Replace("'", "")} AUTOINCREMENT)",
+                        SpecialRow = true
+                    });
+                    
+                }
+                else if (_reader.IsDBNull(2))
+                    _localData.Add(new BindingRowModel
+                    {
                         TableName = _reader.GetString(0),
                         DataType = $"{DetermineType(_reader.GetString(1), _reader.IsDBNull(2) ? -1 : _reader.GetInt32(2))}",
-                        IsNull = notNull
+                        IsNull = notNull,
+                        SpecialRow = false
                     });
             }
+            result = _localData;
             return result;
         }
         private  string DetermineType(string value, int valueLenght)

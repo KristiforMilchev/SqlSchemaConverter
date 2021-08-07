@@ -23,16 +23,17 @@ namespace rokono_cl.Data_Hanlders
                     dbCreationScript += "SET GLOBAL FOREIGN_KEY_CHECKS=0;";
                 var tablesForeignKeys = context.GetTableForignKeys();
                 
-                tables.ForEach(async x=>{
+                tables.ForEach( x=>{
                     if(Program.DataBackup)
                         dbCreationScript += context.GetTableRows(x);
-                    var od = await context.GetTableData(x,tablesForeignKeys,databaseType);
+                    var od =  context.GetTableData(x,tablesForeignKeys,databaseType).Result;
                     System.Console.WriteLine(od.CreationgString);
                     dbCreationScript += $"{od.CreationgString}\r\n";
                 });
-                
-                var corelationData = context.GetDbUmlData();
+
+                var corelationData = context.GetDbUmlData(databaseType);
                 dbCreationScript += corelationData;
+
                 //d System.Windows.Forms.Clipboard.SetText(dbCreationScript);
                 System.Console.WriteLine("Clipboard middleware xclip for Linux is required otherwise the application throws an exception!");
                 if(Program.DataBackup)

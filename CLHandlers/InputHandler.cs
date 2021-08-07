@@ -62,6 +62,7 @@ namespace rokono_cl.CLHandlers
                     Host = Program.Ip,
                     Password = Program.Password,
                     Username = Program.User,
+                    DbType = conversionType
                 };
              await DiagramHandlers.GenerateSchema(Program.SavedConnection, Program.SavedConnection.Database,
                                            Program.SavedConnection.FilePath, Program.SavedConnection.DbType);

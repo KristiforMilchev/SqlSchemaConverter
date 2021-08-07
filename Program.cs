@@ -19,11 +19,12 @@
         public static bool DataBackup { get; set; }
         static async Task Main(string[] args)
         {
+  
             try 
             {
                 for(int i = 0; i < args.Length; i++)
                 {
-                    switch(args[i])
+                    switch (args[i])
                     {
                         case "-u":
                             User = args[i+1];
@@ -55,8 +56,9 @@
                         case "-b":
                             DataBackup = true;
                         break;
+                    
                         case "-CT":
-                            ConversionType = int.Parse(args[i-1]);
+                            ConversionType = int.Parse(args[i+1]);
                         break;
                         case "-Connection":
                             SavedConnection = InputHandler.GetConnectionById(args[i+1]);

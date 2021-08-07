@@ -14,10 +14,11 @@ namespace rokono_cl.DatabaseHandlers
 
     public class DbManager : IDisposable
     {
-        SqlConnection SqlConnection; 
+        SqlConnection SqlConnection;
         public List<BindingRowModel> _localData { get; set; }
         public DbManager(string connectionString)
         {
+            _localData = new List<BindingRowModel>();
             SqlConnection = new SqlConnection(connectionString);
         }
 
@@ -36,7 +37,7 @@ namespace rokono_cl.DatabaseHandlers
             return result;
         }
 
-        public string GetDbUmlData()
+        public string GetDbUmlData(int databaseType)
         {
             var result = string.Empty;
             var query = "SELECT tp.name 'Parent table', cp.name 'Column Id',tr.name 'Refrenced table',cr.name 'Corelation Name' FROM  sys.foreign_keys fk INNER JOIN  sys.tables tp ON fk.parent_object_id = tp.object_id INNER JOIN  sys.tables tr ON fk.referenced_object_id = tr.object_id INNER JOIN  sys.foreign_key_columns fkc ON fkc.constraint_object_id = fk.object_id INNER JOIN sys.columns cp ON fkc.parent_column_id = cp.column_id AND fkc.parent_object_id = cp.object_id INNER JOIN sys.columns cr ON fkc.referenced_column_id = cr.column_id AND fkc.referenced_object_id = cr.object_id ORDER BY tp.name, cp.column_id";
@@ -52,8 +53,12 @@ namespace rokono_cl.DatabaseHandlers
                 while (reader.Read())
                 {
                  
-                        
-                     result += $"ALTER TABLE {reader.GetString(0)} ADD FOREIGN KEY ({reader.GetString(1)}) REFERENCES {reader.GetString(2)}({reader.GetString(3)});\r\n";
+                    if(databaseType != 2)
+                        result += $"ALTER TABLE {reader.GetString(0)} ADD FOREIGN KEY ({reader.GetString(1)}) REFERENCES {reader.GetString(2)}({reader.GetString(3)});\r\n";
+                    else
+                    {
+
+                    }
                 }
                 reader.Close();
             }
@@ -179,7 +184,7 @@ namespace rokono_cl.DatabaseHandlers
                     break;
                 }
                 var lastRow = _localData.Count;
-                _localData.ForEach(x=>{
+                _localData.Where(x=>!x.SpecialRow && !x.IsFK).ToList().ForEach(x=>{
                     i++;
                     var next = ",";
                     if(i == lastRow)
@@ -189,7 +194,15 @@ namespace rokono_cl.DatabaseHandlers
                     else
                         tableData += $"{x.TableName} {x.DataType} {x.IsNull}{next}";
                 });
+                if(databaseType == 2)
+                {
+                    _localData.Where(x => x.SpecialRow).ToList().ForEach(x =>
+                    {
+                        tableData += x.TableName;
+                    });
+                }
                 tableData += " );";
+                _localData = new List<BindingRowModel>();
                 result.CreationgString = tableData;
             }
             SqlConnection.Close();
@@ -236,8 +249,8 @@ namespace rokono_cl.DatabaseHandlers
             try
             {
                 SqlConnection.Open();
-                return  await command.ExecuteReaderAsync();
-              
+                var result =  await command.ExecuteReaderAsync();
+                return result;
             }
             catch (Exception ex)
             {
